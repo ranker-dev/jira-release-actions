@@ -135,7 +135,7 @@ class Project {
 }
 exports.Project = Project;
 const toMoreDescriptiveError = (error) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     if (isAxiosError(error) &&
         ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 404 &&
         Array.isArray((_b = error.response.data) === null || _b === void 0 ? void 0 : _b.errorMessages)) {
@@ -143,6 +143,11 @@ const toMoreDescriptiveError = (error) => {
     }
     else {
         core.error(`error: ${error}`);
+        // @ts-ignore
+        if ((_d = error.response) === null || _d === void 0 ? void 0 : _d.data) {
+            // @ts-ignore
+            core.error(`data: ${JSON.stringify((_e = error.response) === null || _e === void 0 ? void 0 : _e.data)}`);
+        }
         return error;
     }
 };
