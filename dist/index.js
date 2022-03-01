@@ -177,7 +177,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DRY_RUN = exports.TICKETS = exports.CREATE = exports.PROJECT = exports.RELEASE_NAME = exports.SUBDOMAIN = exports.API_TOKEN = exports.EMAIL = void 0;
+exports.RELEASE = exports.DRY_RUN = exports.TICKETS = exports.CREATE = exports.PROJECT = exports.RELEASE_NAME = exports.SUBDOMAIN = exports.API_TOKEN = exports.EMAIL = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 exports.EMAIL = core.getInput('email', { required: true });
 exports.API_TOKEN = core.getInput('api_token', { required: true });
@@ -191,6 +191,7 @@ exports.CREATE = core.getInput('create', {
 });
 exports.TICKETS = core.getInput('tickets', { required: false });
 exports.DRY_RUN = core.getInput('dry_run', { required: false });
+exports.RELEASE = core.getInput('release', { required: false });
 
 
 /***/ }),
@@ -243,6 +244,7 @@ function run() {
                 core.info(`release ${env_1.RELEASE_NAME}`);
                 core.info(`create ${env_1.CREATE}`);
                 core.info(`tickets ${env_1.TICKETS}`);
+                core.info(`release ${env_1.RELEASE}`);
                 return;
             }
             if (env_1.DRY_RUN === 'true') {
@@ -252,6 +254,7 @@ function run() {
                 core.info(`release ${env_1.RELEASE_NAME}`);
                 core.info(`create ${env_1.CREATE}`);
                 core.info(`tickets ${env_1.TICKETS}`);
+                core.info(`release ${env_1.RELEASE}`);
                 const project = yield api_1.Project.create(env_1.EMAIL, env_1.API_TOKEN, env_1.PROJECT, env_1.SUBDOMAIN);
                 core.info(`Project loaded ${(_a = project.project) === null || _a === void 0 ? void 0 : _a.id}`);
                 const version = project.getVersion(env_1.RELEASE_NAME);
@@ -266,6 +269,7 @@ function run() {
             const project = yield api_1.Project.create(env_1.EMAIL, env_1.API_TOKEN, env_1.PROJECT, env_1.SUBDOMAIN);
             core.debug(`Project loaded ${(_b = project.project) === null || _b === void 0 ? void 0 : _b.id}`);
             let version = project.getVersion(env_1.RELEASE_NAME);
+            let release = env_1.RELEASE == 'true';
             if (version === undefined) {
                 core.debug(`Version ${env_1.RELEASE_NAME} not found`);
                 if (env_1.CREATE === 'true') {
@@ -273,17 +277,23 @@ function run() {
                     const versionToCreate = {
                         name: env_1.RELEASE_NAME,
                         archived: false,
-                        released: true,
-                        releaseDate: new Date().toISOString(),
+                        released: release,
+                        releaseDate: undefined,
                         projectId: Number((_c = project.project) === null || _c === void 0 ? void 0 : _c.id)
                     };
+                    if (release) {
+                        versionToCreate.releaseDate = new Date().toISOString();
+                    }
                     version = yield project.createVersion(versionToCreate);
                     core.debug(versionToCreate.name);
                 }
             }
             else {
                 core.debug(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
-                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: true, releaseDate: new Date().toISOString(), userReleaseDate: undefined });
+                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: release, releaseDate: undefined, userReleaseDate: undefined });
+                if (release) {
+                    versionToUpdate.releaseDate = new Date().toISOString();
+                }
                 version = yield project.updateVersion(versionToUpdate);
             }
             if (env_1.TICKETS !== '') {
