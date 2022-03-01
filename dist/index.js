@@ -142,7 +142,7 @@ const toMoreDescriptiveError = (error) => {
         return new Error(`${(_c = error.response.data) === null || _c === void 0 ? void 0 : _c.errorMessages[0]} (this may be due to a missing/invalid API key)`);
     }
     else {
-        core.debug(`error: ${error}`);
+        core.error(`error: ${error}`);
         return error;
     }
 };
@@ -291,7 +291,7 @@ function run() {
             }
             else {
                 core.info(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
-                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: release, startDate: version.startDate, releaseDate: undefined, userReleaseDate: undefined });
+                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: release });
                 if (release) {
                     versionToUpdate.releaseDate = new Date().toISOString();
                 }
