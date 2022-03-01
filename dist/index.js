@@ -296,7 +296,7 @@ function run() {
             }
             else {
                 core.info(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
-                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: release });
+                const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, userStartDate: undefined, userReleaseDate: undefined, released: release });
                 if (release) {
                     versionToUpdate.releaseDate = new Date().toISOString();
                 }
