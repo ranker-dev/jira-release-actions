@@ -271,9 +271,9 @@ function run() {
             let version = project.getVersion(env_1.RELEASE_NAME);
             let release = env_1.RELEASE == 'true';
             if (version === undefined) {
-                core.debug(`Version ${env_1.RELEASE_NAME} not found`);
+                core.info(`Version ${env_1.RELEASE_NAME} not found`);
                 if (env_1.CREATE === 'true') {
-                    core.debug(`Version ${env_1.RELEASE_NAME} is going to the created`);
+                    core.info(`Version ${env_1.RELEASE_NAME} is going to be created`);
                     const versionToCreate = {
                         name: env_1.RELEASE_NAME,
                         archived: false,
@@ -286,29 +286,29 @@ function run() {
                         versionToCreate.releaseDate = new Date().toISOString();
                     }
                     version = yield project.createVersion(versionToCreate);
-                    core.debug(versionToCreate.name);
+                    core.info(versionToCreate.name);
                 }
             }
             else {
-                core.debug(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
+                core.info(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
                 const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, released: release, startDate: version.startDate, releaseDate: undefined, userReleaseDate: undefined });
                 if (release) {
                     versionToUpdate.releaseDate = new Date().toISOString();
                 }
                 version = yield project.updateVersion(versionToUpdate);
             }
-            if (env_1.TICKETS !== '') {
+            if (env_1.TICKETS !== '' && (version === null || version === void 0 ? void 0 : version.id)) {
                 const tickets = env_1.TICKETS.split(',');
-                // eslint-disable-next-line github/array-foreach
-                tickets.forEach(ticket => {
-                    core.debug(`Going to update ticket ${ticket}`);
-                    if ((version === null || version === void 0 ? void 0 : version.id) !== undefined)
-                        project.updateIssue(ticket, version === null || version === void 0 ? void 0 : version.id);
-                });
+                yield Promise.all(tickets.map(ticket => {
+                    core.info(`Going to update ticket ${ticket}`);
+                    // @ts-ignore
+                    return project.updateIssue(ticket, version.id);
+                }));
             }
         }
         catch (_e) {
             const e = _e;
+            core.error(`Error ${e}`);
             core.setFailed(e);
         }
     });
