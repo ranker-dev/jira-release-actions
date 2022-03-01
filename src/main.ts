@@ -85,10 +85,7 @@ async function run(): Promise<void> {
       const versionToUpdate: Version = {
         ...version,
         self: undefined,
-        released: release,
-        startDate: version.startDate,
-        releaseDate: undefined,
-        userReleaseDate: undefined
+        released: release
       }
       
       if(release) {

@@ -122,7 +122,7 @@ const toMoreDescriptiveError = (error: unknown): Error | unknown => {
       `${error.response.data?.errorMessages[0]} (this may be due to a missing/invalid API key)`
     )
   } else {
-    core.debug(`error: ${error}`)
+    core.error(`error: ${error}`)
     return error
   }
 }
