@@ -283,12 +283,12 @@ function run() {
                         name: env_1.RELEASE_NAME,
                         archived: false,
                         released: release,
-                        startDate: new Date().toISOString(),
+                        startDate: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
                         releaseDate: undefined,
                         projectId: Number((_c = project.project) === null || _c === void 0 ? void 0 : _c.id)
                     };
                     if (release) {
-                        versionToCreate.releaseDate = new Date().toISOString();
+                        versionToCreate.releaseDate = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString();
                     }
                     version = yield project.createVersion(versionToCreate);
                     core.info(versionToCreate.name);
@@ -298,7 +298,7 @@ function run() {
                 core.info(`Version ${env_1.RELEASE_NAME} found and is going to be updated`);
                 const versionToUpdate = Object.assign(Object.assign({}, version), { self: undefined, userStartDate: undefined, userReleaseDate: undefined, released: release });
                 if (release) {
-                    versionToUpdate.releaseDate = new Date().toISOString();
+                    versionToUpdate.releaseDate = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString();
                 }
                 version = yield project.updateVersion(versionToUpdate);
             }
