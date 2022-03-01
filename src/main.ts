@@ -67,6 +67,7 @@ async function run(): Promise<void> {
           name: RELEASE_NAME,
           archived: false,
           released: release,
+          startDate: new Date().toISOString(),
           releaseDate: undefined,
           projectId: Number(project.project?.id)
         };
@@ -85,6 +86,7 @@ async function run(): Promise<void> {
         ...version,
         self: undefined,
         released: release,
+        startDate: version.startDate,
         releaseDate: undefined,
         userReleaseDate: undefined
       }
