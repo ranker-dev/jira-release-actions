@@ -58,10 +58,10 @@ async function run(): Promise<void> {
     let release = RELEASE == 'true';
 
     if (version === undefined) {
-      core.debug(`Version ${RELEASE_NAME} not found`)
+      core.info(`Version ${RELEASE_NAME} not found`)
 
       if (CREATE === 'true') {
-        core.debug(`Version ${RELEASE_NAME} is going to the created`)
+        core.info(`Version ${RELEASE_NAME} is going to be created`)
 
         const versionToCreate: Version = {
           name: RELEASE_NAME,
@@ -77,10 +77,10 @@ async function run(): Promise<void> {
         }
         
         version = await project.createVersion(versionToCreate)
-        core.debug(versionToCreate.name)
+        core.info(versionToCreate.name)
       }
     } else {
-      core.debug(`Version ${RELEASE_NAME} found and is going to be updated`)
+      core.info(`Version ${RELEASE_NAME} found and is going to be updated`)
       
       const versionToUpdate: Version = {
         ...version,
@@ -98,16 +98,19 @@ async function run(): Promise<void> {
       version = await project.updateVersion(versionToUpdate)
     }
 
-    if (TICKETS !== '') {
+    if (TICKETS !== '' && version?.id) {
       const tickets = TICKETS.split(',')
-      // eslint-disable-next-line github/array-foreach
-      tickets.forEach(ticket => {
-        core.debug(`Going to update ticket ${ticket}`)
-        if (version?.id !== undefined) project.updateIssue(ticket, version?.id)
-      })
+      await Promise.all(tickets.map(ticket => {
+        core.info(`Going to update ticket ${ticket}`)
+        // @ts-ignore
+        return project.updateIssue(ticket, version.id)
+      }))
     }
   } catch (_e) {
     const e: Error = _e
+
+    core.error(`Error ${e}`);
+
     core.setFailed(e)
   }
 }
