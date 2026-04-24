@@ -106,7 +106,7 @@ async function run(): Promise<void> {
       }))
     }
   } catch (_e) {
-    const e: Error = _e
+    const e = _e as Error
 
     core.error(`Error ${e}`);
 

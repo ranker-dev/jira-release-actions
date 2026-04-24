@@ -7,6 +7,7 @@ export class Project {
   token: string
   name: string
   domain: string
+  baseUrl: string
 
   project?: ProjectDTO
 
@@ -15,6 +16,23 @@ export class Project {
     this.token = token
     this.name = name
     this.domain = domain
+    this.baseUrl = `https://${this.domain}.atlassian.net`
+  }
+
+  async _resolveBaseUrl(): Promise<void> {
+    // Atlassian service-account API tokens (prefix ATSTT) only work via the
+    // gateway URL. Classic personal API tokens work against the tenant URL.
+    if (!this.token.startsWith('ATSTT')) return
+    const tenantInfo = await axios.get(
+      `https://${this.domain}.atlassian.net/_edge/tenant_info`
+    )
+    const cloudId = tenantInfo?.data?.cloudId
+    if (!cloudId) {
+      throw new Error(
+        `Service-account token detected but cloudId could not be resolved from ${this.domain}.atlassian.net/_edge/tenant_info`
+      )
+    }
+    this.baseUrl = `https://api.atlassian.com/ex/jira/${cloudId}`
   }
 
   getVersion(rel: string): Version | undefined {
@@ -31,7 +49,7 @@ export class Project {
   async createVersion(version: Version): Promise<Version> {
     try {
       const response = await axios.post(
-        `https://${this.domain}.atlassian.net/rest/api/3/version`,
+        `${this.baseUrl}/rest/api/3/version`,
         version,
         this._authHeaders()
       )
@@ -45,7 +63,7 @@ export class Project {
     try {
       core.debug(JSON.stringify(version))
       const response = await axios.put(
-        `https://${this.domain}.atlassian.net/rest/api/3/version/${version.id}`,
+        `${this.baseUrl}/rest/api/3/version/${version.id}`,
         version,
         this._authHeaders()
       )
@@ -59,7 +77,7 @@ export class Project {
   async updateIssue(ticket: string, version: string) {
     try {
       const response = await axios.put(
-        `https://${this.domain}.atlassian.net/rest/api/3/issue/${ticket}`,
+        `${this.baseUrl}/rest/api/3/issue/${ticket}`,
         {
           update: {
             fixVersions: [
@@ -84,13 +102,14 @@ export class Project {
     domain: string
   ): Promise<Project> {
     const result = new Project(email, token, name, domain)
+    await result._resolveBaseUrl()
     return result._load()
   }
 
   async _load(): Promise<Project> {
     try {
       const response = await axios.get(
-        `https://${this.domain}.atlassian.net/rest/api/3/project/${this.name}?properties=versions,key,id,name`,
+        `${this.baseUrl}/rest/api/3/project/${this.name}?properties=versions,key,id,name`,
         this._authHeaders()
       )
       this.project = response?.data
