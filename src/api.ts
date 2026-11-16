@@ -19,17 +19,14 @@ export class Project {
     this.baseUrl = `https://${this.domain}.atlassian.net`
   }
 
-  async _resolveBaseUrl(): Promise<void> {
-    // Atlassian service-account API tokens (prefix ATSTT) only work via the
-    // gateway URL. Classic personal API tokens work against the tenant URL.
-    if (!this.token.startsWith('ATSTT')) return
+  async _useGateway(): Promise<void> {
     const tenantInfo = await axios.get(
       `https://${this.domain}.atlassian.net/_edge/tenant_info`
     )
     const cloudId = tenantInfo?.data?.cloudId
     if (!cloudId) {
       throw new Error(
-        `Service-account token detected but cloudId could not be resolved from ${this.domain}.atlassian.net/_edge/tenant_info`
+        `cloudId could not be resolved from ${this.domain}.atlassian.net/_edge/tenant_info`
       )
     }
     this.baseUrl = `https://api.atlassian.com/ex/jira/${cloudId}`
@@ -102,21 +99,34 @@ export class Project {
     domain: string
   ): Promise<Project> {
     const result = new Project(email, token, name, domain)
-    await result._resolveBaseUrl()
-    return result._load()
-  }
-
-  async _load(): Promise<Project> {
+    if (token.startsWith('ATSTT')) await result._useGateway()
     try {
-      const response = await axios.get(
-        `${this.baseUrl}/rest/api/3/project/${this.name}?properties=versions,key,id,name`,
-        this._authHeaders()
-      )
-      this.project = response?.data
-      return this
+      return await result._load()
+    } catch (error: unknown) {
+      // ATATT tokens can be classic (tenant URL) or scoped (gateway only) and
+      // the prefix does not tell them apart. The tenant URL treats a scoped
+      // token as anonymous (401, or 404 for the project), so retry via the
+      // gateway in that case.
+      const status = isAxiosError(error) ? error.response?.status : undefined
+      if (token.startsWith('ATSTT') || (status !== 401 && status !== 404)) {
+        return Promise.reject(toMoreDescriptiveError(error))
+      }
+    }
+    try {
+      await result._useGateway()
+      return await result._load()
     } catch (error: unknown) {
       return Promise.reject(toMoreDescriptiveError(error))
     }
+  }
+
+  async _load(): Promise<Project> {
+    const response = await axios.get(
+      `${this.baseUrl}/rest/api/3/project/${this.name}?properties=versions,key,id,name`,
+      this._authHeaders()
+    )
+    this.project = response?.data
+    return this
   }
 
   _authHeaders(): Object {
@@ -141,9 +151,9 @@ const toMoreDescriptiveError = (error: unknown): Error | unknown => {
       `${error.response.data?.errorMessages[0]} (this may be due to a missing/invalid API key)`
     )
   } else {
-    core.error(`error: ${error}`);
+    core.error(`error: ${error}`)
     // @ts-ignore
-    if(error.response?.data) {
+    if (error.response?.data) {
       // @ts-ignore
       core.error(`data: ${JSON.stringify(error.response?.data)}`)
     }
