@@ -20,8 +20,6 @@ export class Project {
   }
 
   async _useGateway(): Promise<void> {
-    // Service-account (ATSTT) and scoped (ATATT) API tokens are refused by the
-    // tenant URL and only work via the api.atlassian.com gateway.
     const tenantInfo = await axios.get(
       `https://${this.domain}.atlassian.net/_edge/tenant_info`
     )

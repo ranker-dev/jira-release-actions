@@ -25,6 +25,11 @@ The action can also automatically update the 'Fix Version' field of a list of Ji
 | tickets | Comma separated list of ticket IDs to include in the release. Update the first release-version. | N (default: '') |
 | dry_run | Dump actions that would be taken | N (default: false) |
 
+Classic personal API tokens use the tenant URL (`https://[subdomain].atlassian.net`).
+If loading the project returns HTTP 401 or 404, the action resolves the instance's
+cloud ID and retries through `https://api.atlassian.com/ex/jira/[cloudId]` to support
+scoped API tokens. Service-account tokens (prefix `ATSTT`) use this gateway directly.
+Keep `subdomain` set to your Jira instance's subdomain for all token types.
 
 ### Example
 
