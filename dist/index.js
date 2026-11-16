@@ -63,17 +63,15 @@ class Project {
         this.domain = domain;
         this.baseUrl = `https://${this.domain}.atlassian.net`;
     }
-    _resolveBaseUrl() {
+    _useGateway() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            // Atlassian service-account API tokens (prefix ATSTT) only work via the
-            // gateway URL. Classic personal API tokens work against the tenant URL.
-            if (!this.token.startsWith('ATSTT'))
-                return;
+            // Service-account (ATSTT) and scoped (ATATT) API tokens are refused by the
+            // tenant URL and only work via the api.atlassian.com gateway.
             const tenantInfo = yield axios_1.default.get(`https://${this.domain}.atlassian.net/_edge/tenant_info`);
             const cloudId = (_a = tenantInfo === null || tenantInfo === void 0 ? void 0 : tenantInfo.data) === null || _a === void 0 ? void 0 : _a.cloudId;
             if (!cloudId) {
-                throw new Error(`Service-account token detected but cloudId could not be resolved from ${this.domain}.atlassian.net/_edge/tenant_info`);
+                throw new Error(`cloudId could not be resolved from ${this.domain}.atlassian.net/_edge/tenant_info`);
             }
             this.baseUrl = `https://api.atlassian.com/ex/jira/${cloudId}`;
         });
@@ -138,21 +136,37 @@ class Project {
     }
     static create(email, token, name, domain) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             const result = new Project(email, token, name, domain);
-            yield result._resolveBaseUrl();
-            return result._load();
-        });
-    }
-    _load() {
-        return __awaiter(this, void 0, void 0, function* () {
+            if (token.startsWith('ATSTT'))
+                yield result._useGateway();
             try {
-                const response = yield axios_1.default.get(`${this.baseUrl}/rest/api/3/project/${this.name}?properties=versions,key,id,name`, this._authHeaders());
-                this.project = response === null || response === void 0 ? void 0 : response.data;
-                return this;
+                return yield result._load();
+            }
+            catch (error) {
+                // ATATT tokens can be classic (tenant URL) or scoped (gateway only) and
+                // the prefix does not tell them apart. The tenant URL treats a scoped
+                // token as anonymous (401, or 404 for the project), so retry via the
+                // gateway in that case.
+                const status = isAxiosError(error) ? (_a = error.response) === null || _a === void 0 ? void 0 : _a.status : undefined;
+                if (token.startsWith('ATSTT') || (status !== 401 && status !== 404)) {
+                    return Promise.reject(toMoreDescriptiveError(error));
+                }
+            }
+            try {
+                yield result._useGateway();
+                return yield result._load();
             }
             catch (error) {
                 return Promise.reject(toMoreDescriptiveError(error));
             }
+        });
+    }
+    _load() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const response = yield axios_1.default.get(`${this.baseUrl}/rest/api/3/project/${this.name}?properties=versions,key,id,name`, this._authHeaders());
+            this.project = response === null || response === void 0 ? void 0 : response.data;
+            return this;
         });
     }
     _authHeaders() {
