@@ -66,8 +66,6 @@ class Project {
     _useGateway() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            // Service-account (ATSTT) and scoped (ATATT) API tokens are refused by the
-            // tenant URL and only work via the api.atlassian.com gateway.
             const tenantInfo = yield axios_1.default.get(`https://${this.domain}.atlassian.net/_edge/tenant_info`);
             const cloudId = (_a = tenantInfo === null || tenantInfo === void 0 ? void 0 : tenantInfo.data) === null || _a === void 0 ? void 0 : _a.cloudId;
             if (!cloudId) {
